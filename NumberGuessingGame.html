@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Number Guessing Game</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a2a6c, #b21f1f, #fdbb2d);
+            color: white;
+            height: 100vh;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+        }
+        
+        .container {
+            background-color: rgba(0, 0, 0, 0.7);
+            padding: 2rem;
+            border-radius: 15px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+            max-width: 500px;
+            width: 90%;
+            transition: all 0.3s ease;
+        }
+        
+        h1 {
+            margin-top: 0;
+            font-size: 2.2rem;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+        
+        .difficulty {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin: 20px 0;
+        }
+        
+        button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            margin: 4px 2px;
+            cursor: pointer;
+            border-radius: 8px;
+            transition: all 0.3s;
+        }
+        
+        button:hover {
+            background-color: #45a049;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+        
+        button:active {
+            transform: translateY(0);
+        }
+        
+        input {
+            padding: 12px 20px;
+            margin: 8px 0;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+            width: 60%;
+            transition: border 0.3s;
+        }
+        
+        input:focus {
+            border: 2px solid #4CAF50;
+            outline: none;
+        }
+        
+        .message {
+            margin: 20px 0;
+            font-size: 1.2rem;
+            min-height: 30px;
+        }
+        
+        .attempts {
+            font-weight: bold;
+            color: #FFD700;
+        }
+        
+        .hint {
+            font-style: italic;
+            color: #a8dadc;
+            margin-top: 10px;
+        }
+        
+        .game-area {
+            display: none;
+        }
+        
+        .restart-btn {
+            background-color: #f44336;
+        }
+        
+        .restart-btn:hover {
+            background-color: #d32f2f;
+        }
+        
+        .difficulty-btn {
+            background-color: #2196F3;
+        }
+        
+        .difficulty-btn:hover {
+            background-color: #0b7dda;
+        }
+        
+        .progress-container {
+            width: 100%;
+            background-color: #ddd;
+            border-radius: 8px;
+            margin: 20px 0;
+            overflow: hidden;
+        }
+        
+        .progress-bar {
+            height: 20px;
+            background-color: #4CAF50;
+            width: 100%;
+            transition: width 0.3s;
+        }
+        
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+            20%, 40%, 60%, 80% { transform: translateX(5px); }
+        }
+        
+        .shake {
+            animation: shake 0.5s;
+        }
+        
+        .confetti {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background-color: #f00;
+            border-radius: 50%;
+            pointer-events: none;
+        }
+        
+        @keyframes fall {
+            to {
+                transform: translateY(100vh) rotate(360deg);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="welcome-screen">
+            <h1>Number Guessing Game</h1>
+            <p>Tebak angka antara 1-100 dalam jumlah percobaan sesedikit mungkin!</p>
+            <p>Pilih tingkat kesulitan:</p>
+            <div class="difficulty">
+                <button class="difficulty-btn" data-range="50">Mudah (1-50)</button>
+                <button class="difficulty-btn" data-range="100">Medium (1-100)</button>
+                <button class="difficulty-btn" data-range="200">Sulit (1-200)</button>
+            </div><br><br>
+	    <div><p>@lutfibatawi l 2025</p></div>
+        </div>
+        
+        <div class="game-area">
+            <h1 id="game-title">Tebak Angka</h1>
+            <div class="progress-container">
+                <div class="progress-bar" id="progress"></div>
+            </div>
+            <p>Tebak angka antara <span id="range-display">1-100</span></p>
+            <p>Sisa percobaan: <span class="attempts" id="attempts">10</span></p>
+            <input type="number" id="guess-input" placeholder="Masukkan tebakan Anda" min="1">
+            <button id="guess-btn">Tebak</button>
+            <div class="message" id="message"></div>
+            <div class="hint" id="hint"></div>
+            <button class="restart-btn" id="restart-btn">Main Lagi</button>
+        </div>
+    </div>
+
+    <script>
+        // Game variables
+        let targetNumber;
+        let attemptsLeft;
+        let maxAttempts = 10;
+        let maxRange = 100;
+        let gameActive = false;
+        
+        // DOM elements
+        const welcomeScreen = document.querySelector('.welcome-screen');
+        const gameArea = document.querySelector('.game-area');
+        const guessInput = document.getElementById('guess-input');
+        const guessBtn = document.getElementById('guess-btn');
+        const messageEl = document.getElementById('message');
+        const hintEl = document.getElementById('hint');
+        const attemptsEl = document.getElementById('attempts');
+        const restartBtn = document.getElementById('restart-btn');
+        const progressBar = document.getElementById('progress');
+        const rangeDisplay = document.getElementById('range-display');
+        const gameTitle = document.getElementById('game-title');
+        const difficultyBtns = document.querySelectorAll('.difficulty-btn');
+        
+        // Initialize game
+        function initGame(range) {
+            maxRange = range;
+            targetNumber = Math.floor(Math.random() * maxRange) + 1;
+            attemptsLeft = maxAttempts;
+            gameActive = true;
+            
+            // Update UI
+            welcomeScreen.style.display = 'none';
+            gameArea.style.display = 'block';
+            rangeDisplay.textContent = `1-${maxRange}`;
+            attemptsEl.textContent = attemptsLeft;
+            messageEl.textContent = '';
+            hintEl.textContent = '';
+            guessInput.value = '';
+            guessInput.focus();
+            updateProgressBar();
+            
+            console.log(`Target number: ${targetNumber}`); // For debugging
+        }
+        
+        // Check guess
+        function checkGuess() {
+            if (!gameActive) return;
+            
+            const guess = parseInt(guessInput.value);
+            
+            // Validate input
+            if (isNaN(guess)) {
+                messageEl.textContent = 'Masukkan angka yang valid!';
+                messageEl.classList.add('shake');
+                setTimeout(() => messageEl.classList.remove('shake'), 500);
+                return;
+            }
+            
+            if (guess < 1 || guess > maxRange) {
+                messageEl.textContent = `Angka harus antara 1 dan ${maxRange}!`;
+                messageEl.classList.add('shake');
+                setTimeout(() => messageEl.classList.remove('shake'), 500);
+                return;
+            }
+            
+            // Process valid guess
+            attemptsLeft--;
+            attemptsEl.textContent = attemptsLeft;
+            updateProgressBar();
+            
+            if (guess === targetNumber) {
+                // Win condition
+                gameActive = false;
+                messageEl.textContent = `Selamat! Anda menebak angka ${targetNumber} dengan benar!`;
+                messageEl.style.color = '#4CAF50';
+                createConfetti();
+                gameTitle.textContent = "Anda Menang!";
+            } else if (attemptsLeft === 0) {
+                // Lose condition
+                gameActive = false;
+                messageEl.textContent = `Game over! Angka yang benar adalah ${targetNumber}.`;
+                messageEl.style.color = '#f44336';
+                gameTitle.textContent = "Game Over";
+            } else {
+                // Provide hint
+                if (guess < targetNumber) {
+                    messageEl.textContent = 'Terlalu rendah!';
+                    messageEl.style.color = '#2196F3';
+                } else {
+                    messageEl.textContent = 'Terlalu tinggi!';
+                    messageEl.style.color = '#f44336';
+                }
+                
+                // Additional hints
+                if (attemptsLeft <= 3) {
+                    const difference = Math.abs(targetNumber - guess);
+                    if (difference <= 5) {
+                        hintEl.textContent = 'Hampir benar! Anda sangat dekat!';
+                    } else if (difference <= 15) {
+                        hintEl.textContent = 'Anda semakin dekat!';
+                    }
+                }
+            }
+            
+            guessInput.value = '';
+        }
+        
+        // Update progress bar
+        function updateProgressBar() {
+            const percentage = (attemptsLeft / maxAttempts) * 100;
+            progressBar.style.width = `${percentage}%`;
+            
+            // Change color based on remaining attempts
+            if (percentage <= 20) {
+                progressBar.style.backgroundColor = '#f44336';
+            } else if (percentage <= 50) {
+                progressBar.style.backgroundColor = '#FFA500';
+            } else {
+                progressBar.style.backgroundColor = '#4CAF50';
+            }
+        }
+        
+        // Create confetti effect
+        function createConfetti() {
+            const colors = ['#ff0000', '#00ff00', '#0000ff', '#ffff00', '#ff00ff', '#00ffff'];
+            const container = document.querySelector('.container');
+            
+            for (let i = 0; i < 50; i++) {
+                const confetti = document.createElement('div');
+                confetti.className = 'confetti';
+                confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                confetti.style.left = `${Math.random() * 100}%`;
+                confetti.style.top = '-10px';
+                confetti.style.width = `${Math.random() * 10 + 5}px`;
+                confetti.style.height = `${Math.random() * 10 + 5}px`;
+                confetti.style.animation = `fall ${Math.random() * 3 + 2}s linear forwards`;
+                container.appendChild(confetti);
+                
+                // Remove confetti after animation
+                setTimeout(() => {
+                    confetti.remove();
+                }, 3000);
+            }
+        }
+        
+        // Event listeners
+        guessBtn.addEventListener('click', checkGuess);
+        
+        guessInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                checkGuess();
+            }
+        });
+        
+        restartBtn.addEventListener('click', () => {
+            initGame(maxRange);
+            messageEl.style.color = 'white';
+            gameTitle.textContent = "Tebak Angka";
+        });
+        
+        difficultyBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const range = parseInt(btn.dataset.range);
+                maxAttempts = Math.floor(range / 10) + 5; // Scale attempts with range
+                initGame(range);
+            });
+        });
+    </script>
+</body>
+</html>
